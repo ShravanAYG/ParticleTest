@@ -53,6 +53,16 @@ SDL_Rect movePoint(int *startX, int *startY, int *targetX, int *targetY, float *
 	return result;
 }
 
+void checkRandomMove(struct tParticle *p) {
+	if (p->t >= 1.0f) {
+		p->startX = p->targetX;
+		p->startY = p->targetY;
+		p->targetX = rand() % 800;
+		p->targetY = rand() % 600;
+		p->t = 0.0f;
+	}
+}
+
 int main() {
 	SDL_Init(SDL_INIT_VIDEO);
 	srand((unsigned int)time(NULL));
@@ -61,9 +71,16 @@ int main() {
 										  SDL_WINDOW_OPENGL);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-	struct tParticle p1 = particleInit();
+	struct tParticle *p;
+	int N = 100;
 	bool running = true;
 	SDL_Event event;
+
+	// printf("Enter the number of particles:");
+	// scanf("%d", &N);
+	p = calloc(N, sizeof(struct tParticle));
+	for (int i = 0; i < N; i++)
+		p[i] = particleInit();
 
 	while (running) {
 		while (SDL_PollEvent(&event)) {
@@ -72,14 +89,9 @@ int main() {
 			}
 		}
 
-		p1.p = movePoint(&p1.startX, &p1.startY, &p1.targetX, &p1.targetY, &p1.t, p1.speed);
-
-		if (p1.t >= 1.0f) {
-			p1.startX = p1.targetX;
-			p1.startY = p1.targetY;
-			p1.targetX = rand() % 800;
-			p1.targetY = rand() % 600;
-			p1.t = 0.0f;
+		for (int i = 0; i < N; i++) {
+			p[i].p = movePoint(&p[i].startX, &p[i].startY, &p[i].targetX, &p[i].targetY, &p[i].t, p[i].speed);
+			checkRandomMove(&p[i]);
 		}
 
 		// Rendering
@@ -87,7 +99,8 @@ int main() {
 		SDL_RenderClear(renderer);
 
 		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-		SDL_RenderFillRect(renderer, &p1.p);
+		for (int i = 0; i < N; i++)
+			SDL_RenderFillRect(renderer, &p[i].p);
 
 		SDL_RenderPresent(renderer);
 
