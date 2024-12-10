@@ -82,17 +82,18 @@ void resolveCollision(struct tParticle *a, struct tParticle *b) {
 	float dx = b->p.x - a->p.x;
 	float dy = b->p.y - a->p.y;
 
-	float magnitude = sqrtf(dx * dx + dy * dy);
-	if (magnitude == 0)
-		magnitude = 1;
-	dx /= magnitude;
-	dy /= magnitude;
+	float distance = sqrtf(dx * dx + dy * dy);
+	if (distance == 0.0f)
+		distance = 1.0f;
 
-	int separation = 5;
-	a->p.x -= (int)(dx * separation);
-	a->p.y -= (int)(dy * separation);
-	b->p.x += (int)(dx * separation);
-	b->p.y += (int)(dy * separation);
+	dx /= distance;
+	dy /= distance;
+
+	int separation = a->p.w;
+	a->p.x -= (int)(dx * separation / 2);
+	a->p.y -= (int)(dy * separation / 2);
+	b->p.x += (int)(dx * separation / 2);
+	b->p.y += (int)(dy * separation / 2);
 
 	a->targetX = a->p.x - (int)(dx * 100);
 	a->targetY = a->p.y - (int)(dy * 100);
@@ -119,27 +120,34 @@ void checkRandomMove(struct tParticle *p) {
 }
 
 void collideWall(struct tParticle *p) {
-	if (p->p.x + p->p.w <= 0 || p->p.x - p->p.w >= SCREEN_WIDTH) {
+	if (p->p.x <= 0 || p->p.x + p->p.w >= SCREEN_WIDTH) {
 		p->targetX = 2 * p->p.x - p->startX;
 		p->startX = p->p.x;
 
-		if (p->p.x <= 0)
-			p->p.x = 1;
-		if (p->p.x >= SCREEN_WIDTH)
-			p->p.x = SCREEN_WIDTH - 1;
+		p->p.x = SDL_clamp(p->p.x, 1, SCREEN_WIDTH - p->p.w - 1);
 	}
 
-	if (p->p.y + p->p.h <= 0 || p->p.y - p->p.h >= SCREEN_HEIGHT) {
+	if (p->p.y <= 0 || p->p.y + p->p.h >= SCREEN_HEIGHT) {
 		p->targetY = 2 * p->p.y - p->startY;
 		p->startY = p->p.y;
 
-		if (p->p.y <= 0)
-			p->p.y = 1;
-		if (p->p.y >= SCREEN_HEIGHT)
-			p->p.y = SCREEN_HEIGHT - 1;
+		p->p.y = SDL_clamp(p->p.y, 1, SCREEN_HEIGHT - p->p.h - 1);
 	}
 
 	p->t = 0.0f;
+}
+
+void detectCollisions(struct tParticle *particles, int N) {
+	for (int i = 0; i < N; i++) {
+		collideWall(&particles[i]);
+
+		for (int j = i + 1; j < N; j++) {
+			if (rectsCollide(&particles[i].p, &particles[j].p)) {
+				printf("Collision detected between particles %d and %d\n", i, j);
+				resolveCollision(&particles[i], &particles[j]);
+			}
+		}
+	}
 }
 
 int main() {
@@ -181,25 +189,12 @@ int main() {
 
 		for (int i = 0; i < N; i++) {
 			p[i].p = movePoint(&p[i].startX, &p[i].startY, &p[i].targetX, &p[i].targetY, &p[i].t, p[i].speed);
-			// checkRandomMove(&p[i]);
-			for (int j = i + 1; j < N; j++) {
-				if (rectsCollide(&p[i].p, &p[j].p)) {
-					printf("Collision detected between particle %d and %d\n", i, j);
-					resolveCollision(&p[i], &p[j]);
-				}
-				//collideWall(&p[i]);
-				if (p[i].p.x == p[i].targetX && p[i].p.y == p[i].targetY) {
-					int tmp = p[i].startX;
-					p[i].startX = p[i].targetX;
-					p[i].targetX = tmp;
-					tmp = p[i].startY;
-					p[i].startY = p[i].targetY;
-					p[i].targetY = tmp;
-					p[i].t = 0.0f;
-				}
-			}
-			// printf("Particle: %d, X: %d, Y: %d, StartX: %d\n", i, p[i].p.x, p[i].p.y, p[i].startX);
+			collideWall(&p[i]);
+			if(p[i].startX - p[i].targetX < 5 && p[i].startY - p[i].targetY < 5)
+				checkRandomMove(&p[i]);
 		}
+
+		detectCollisions(p, N);
 
 		// Rendering
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);

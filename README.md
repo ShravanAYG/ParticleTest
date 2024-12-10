@@ -1,7 +1,7 @@
 # Particle test
 My test on particle system and fluid dyanmics
 # How to run
-`$ gcc main.c -o main -Wall -Wextra -Werror -lSDL2 -lm && ./main`
+`$ g++ main.cpp -o main -Wall -Wextra -Werror -lsfml-graphics -lsfml-window -lsfml-system && ./main`
 
 A `Makefile` will be added soon..
 # Cerdits
