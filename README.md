@@ -5,4 +5,4 @@ My test on particle system and fluid dyanmics
 
 A proper `Makefile` will be added soon..
 # Cerdits
-Me :) and also some help from stackoverflow and chatgpt
+due
